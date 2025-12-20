@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Post, Follow
+from .models import Post, Follow, Comment
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -22,12 +22,21 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         )
         return user
 
+class CommentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Comment
+        fields = ['id', 'user', 'post', 'content', 'created_at']
+        read_only_fields = ['post']
+
 class PostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
 
     class Meta:
         model = Post
-        fields = ['id', 'user', 'content', 'image', 'video', 'audio', 'created_at']
+        fields = ['id', 'user', 'content', 'image', 'video', 'audio', 'created_at', 'comments']
 
 class FollowSerializer(serializers.ModelSerializer):
     follower = UserSerializer(read_only=True)

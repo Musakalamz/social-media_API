@@ -4,11 +4,21 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
-from .models import Post, Follow
-from .serializers import PostSerializer, UserSerializer, FollowSerializer, UserRegistrationSerializer
+from .models import Post, Follow, Comment
+from .serializers import PostSerializer, UserSerializer, FollowSerializer, CommentSerializer, UserRegistrationSerializer
 
 def root_redirect(request):
     return redirect('/api/')
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        post_id = self.request.data.get('post')
+        post = Post.objects.get(id=post_id)
+        serializer.save(user=self.request.user, post=post)
 
 class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
