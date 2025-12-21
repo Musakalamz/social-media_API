@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Post, Follow, Comment
+from .models import Post, Follow, Comment, Profile
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['bio', 'avatar']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,10 +14,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    profile = ProfileSerializer(required=False)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password']
+        fields = ['id', 'username', 'email', 'password' ,'profile']
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -47,3 +53,4 @@ class FollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
         fields = ['id', 'follower', 'following', 'created_at']
+

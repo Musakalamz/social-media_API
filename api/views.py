@@ -72,9 +72,37 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
 
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Ensure user can only update their own profile
+        if instance != request.user:
+             return Response({"error": "You cannot edit another user's profile"}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        
+        # Handle profile update manually if needed, or rely on nested serializer update logic
+        # For simplicity, if we want to update profile fields, we might need a custom update method
+        # or use a library like drf-writable-nested. 
+        # Here is a manual implementation for profile:
+        profile_data = request.data.get('profile')
+        if profile_data:
+            profile = instance.profile
+            if 'bio' in profile_data:
+                profile.bio = profile_data['bio']
+            if 'avatar' in profile_data:
+                profile.avatar = profile_data['avatar']
+            profile.save()
+
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def follow(self, request, pk=None):
