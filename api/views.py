@@ -1,20 +1,25 @@
-from rest_framework import viewsets, permissions, status, generics
+from rest_framework import viewsets, permissions, status, generics, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
-from .models import Post, Follow, Like
-from .serializers import PostSerializer, UserSerializer, FollowSerializer, CommentSerializer, UserRegistrationSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import Post, Follow, Comment, Like, Profile
+from .serializers import PostSerializer, UserSerializer, FollowSerializer, UserRegistrationSerializer, CommentSerializer
 
 def root_redirect(request):
     return redirect('/api/')
 
-class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
-    serializer_class = CommentSerializer
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all().order_by('-created_at')
+    serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['user__username']
+    search_fields = ['content', 'user__username']
+    ordering_fields = ['created_at', 'likes_count']
+    
     def perform_create(self, serializer):
         post_id = self.request.data.get('post')
         post = Post.objects.get(id=post_id)
