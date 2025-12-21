@@ -33,10 +33,12 @@ class CommentSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
+    likes_count = serializers.IntegerField(source='likes.count', read_only=True)
 
     class Meta:
         model = Post
-        fields = ['id', 'user', 'content', 'image', 'video', 'audio', 'created_at', 'comments']
+        fields = ['id', 'user', 'content', 'image', 'video', 'audio', 'created_at', 'likes_count']
+       
 
 class FollowSerializer(serializers.ModelSerializer):
     follower = UserSerializer(read_only=True)

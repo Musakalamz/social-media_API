@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
-from .models import Post, Follow, Comment
+from .models import Post, Follow, Like
 from .serializers import PostSerializer, UserSerializer, FollowSerializer, CommentSerializer, UserRegistrationSerializer
 
 def root_redirect(request):
@@ -42,6 +42,20 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def like(self, request, pk=None):
+        post = self.get_object()
+        like, created = Like.objects.get_or_create(user=request.user, post=post)
+        if not created:
+            return Response({"message": "You already liked this post"}, status=status.HTTP_200_OK)
+        return Response({"message": "Post liked"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def unlike(self, request, pk=None):
+        post = self.get_object()
+        Like.objects.filter(user=request.user, post=post).delete()
+        return Response({"message": "Post unliked"}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def feed(self, request):
