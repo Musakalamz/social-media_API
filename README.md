@@ -82,8 +82,8 @@ A robust and scalable RESTful API for a social media platform, built with Django
 
 The API includes interactive documentation. Once the server is running, visit:
 
-- **Swagger UI**: [http://127.0.0.1:8000/api/swagger/](http://127.0.0.1:8000/api/swagger/)
-- **ReDoc**: [http://127.0.0.1:8000/api/redoc/](http://127.0.0.1:8000/api/redoc/)
+- **Swagger UI**: [http://127.0.0.1:8000/swagger/](http://127.0.0.1:8000/swagger/)
+- **ReDoc**: [http://127.0.0.1:8000/redoc/](http://127.0.0.1:8000/redoc/)
 
 ## 🔌 Key Endpoints
 
