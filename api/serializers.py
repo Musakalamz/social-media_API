@@ -8,17 +8,18 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ['bio', 'avatar']
 
 class UserSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer(read_only=True)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'profile']
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    profile = ProfileSerializer(required=False)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password' ,'profile']
+        fields = ['username', 'email', 'password']
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -43,8 +44,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'user', 'content', 'image', 'video', 'audio', 'created_at', 'likes_count']
-       
+        fields = ['id', 'user', 'content', 'image', 'video', 'audio', 'created_at', 'likes_count', 'comments']
 
 class FollowSerializer(serializers.ModelSerializer):
     follower = UserSerializer(read_only=True)

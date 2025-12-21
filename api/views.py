@@ -11,20 +11,6 @@ from .serializers import PostSerializer, UserSerializer, FollowSerializer, UserR
 def root_redirect(request):
     return redirect('/api/')
 
-class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all().order_by('-created_at')
-    serializer_class = PostSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['user__username']
-    search_fields = ['content', 'user__username']
-    ordering_fields = ['created_at', 'likes_count']
-    
-    def perform_create(self, serializer):
-        post_id = self.request.data.get('post')
-        post = Post.objects.get(id=post_id)
-        serializer.save(user=self.request.user, post=post)
-
 class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
@@ -44,6 +30,10 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['user__username']
+    search_fields = ['content', 'user__username']
+    ordering_fields = ['created_at', 'likes_count']
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -77,6 +67,23 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(posts, many=True)
         return Response(serializer.data)
 
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        post_id = self.request.data.get('post')
+        # If post is not in data, try to get it from context or validation
+        # Ideally, 'post' field in serializer should handle this validation
+        if not post_id:
+             # Fallback or error handling depending on frontend implementation
+             pass 
+        # But wait, serializer handles 'post' field usually. 
+        # If we use nested routes or just pass 'post' ID in body.
+        # Assuming 'post' ID is passed in body as 'post'
+        serializer.save(user=self.request.user)
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -93,11 +100,35 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         
-        # Handle profile update manually if needed, or rely on nested serializer update logic
-        # For simplicity, if we want to update profile fields, we might need a custom update method
-        # or use a library like drf-writable-nested. 
-        # Here is a manual implementation for profile:
         profile_data = request.data.get('profile')
+        if profile_data:
+            profile = instance.profile
+            if 'bio' in profile_data:
+                profile.bio = profile_data['bio']
+            if 'avatar' in profile_data:
+                profile.avatar = profile_data['avatar']
+            profile.save()
+
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def follow(self, request, pk=None):
+        target_user = self.get_object()
+        if request.user == target_user:
+            return Response({"error": "You cannot follow yourself"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        follow, created = Follow.objects.get_or_create(follower=request.user, following=target_user)
+        if not created:
+            return Response({"message": "You are already following this user"}, status=status.HTTP_200_OK)
+        
+        return Response({"message": f"You are now following {target_user.username}"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def unfollow(self, request, pk=None):
+        target_user = self.get_object()
+        Follow.objects.filter(follower=request.user, following=target_user).delete()
+        return Response({"message": f"You have unfollowed {target_user.username}"}, status=status.HTTP_200_OK)
         if profile_data:
             profile = instance.profile
             if 'bio' in profile_data:
