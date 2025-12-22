@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from django.contrib.auth import authenticate
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Post, Follow, Comment, Like, Profile
-from .serializers import PostSerializer, UserSerializer, FollowSerializer, UserRegistrationSerializer, CommentSerializer
+from .serializers import PostSerializer, UserSerializer, FollowSerializer, UserRegistrationSerializer, CommentSerializer, LoginSerializer
 
 def root_redirect(request):
     return redirect('/api/')
@@ -28,17 +28,18 @@ class UserRegistrationView(generics.CreateAPIView):
             "token": token.key
         }, status=status.HTTP_201_CREATED)
 
-class TokenLoginView(APIView):
+class TokenLoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         return Response({"detail": "POST username and password to obtain token."})
 
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        if not username or not password:
-            return Response({"error": "username and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
         user = authenticate(username=username, password=password)
         if not user:
             return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)

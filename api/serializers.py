@@ -29,6 +29,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         )
         return user
 
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     
