@@ -110,14 +110,69 @@ To run the automated test suite:
 python manage.py test
 ```
 
+## 🔐 Authentication & Usage
+
+- Register:
+  ```powershell
+  $b = @{ username = "john"; email = "john@example.com"; password = "securepassword" } | ConvertTo-Json
+  Invoke-RestMethod -Method POST -Uri http://127.0.0.1:8000/api/register/ -ContentType "application/json" -Body $b
+  ```
+- Login:
+  ```powershell
+  $b = @{ username = "john"; password = "securepassword" } | ConvertTo-Json
+  $res = Invoke-RestMethod -Method POST -Uri http://127.0.0.1:8000/api/login/ -ContentType "application/json" -Body $b
+  $token = $res.token; $headers = @{ Authorization = "Token $token" }
+  ```
+- Create Post:
+  ```powershell
+  $post = @{ content = "Hello world" } | ConvertTo-Json
+  Invoke-RestMethod -Method POST -Uri http://127.0.0.1:8000/api/posts/ -Headers $headers -ContentType "application/json" -Body $post
+  ```
+- Swagger: open `http://127.0.0.1:8000/swagger/`, click "Authorize", enter `Token <your_token>`, then try endpoints.
+
+## 🚢 Deployment
+
+### Render (recommended PaaS)
+
+- Environment variables:
+  - `DJANGO_SETTINGS_MODULE=config.settings`
+  - `SECRET_KEY=<strong-secret>`
+  - `ALLOWED_HOSTS=<your-service.onrender.com>,localhost`
+  - `DATABASE_URL` (if using Render Postgres)
+- Build command:
+  ```bash
+  pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+  ```
+- Start command:
+  ```bash
+  gunicorn config.wsgi
+  ```
+- Notes: static files served via WhiteNoise; database auto-configured if `DATABASE_URL` is set.
+
+### PythonAnywhere
+
+- Create a web app, point WSGI to `config.wsgi`.
+- In a virtualenv:
+  ```bash
+  pip install -r requirements.txt
+  python manage.py migrate
+  python manage.py collectstatic --noinput
+  ```
+- Set `ALLOWED_HOSTS` to your PythonAnywhere domain.
+
+## ⚙️ Configuration
+
+- `ALLOWED_HOSTS` is read from env (defaults to `*` for dev).
+- Static files: `STATIC_URL=/static/`, `STATIC_ROOT=staticfiles`, `WhiteNoise` enabled.
+- DB: falls back to SQLite; if `DATABASE_URL` exists, uses Postgres via `dj_database_url`.
+
 ## 🔒 Security & Performance
 
 - **Throttling**:
   - Anonymous users: 100 requests/day
   - Authenticated users: 1000 requests/day
 - **Permissions**:
-  - `IsAuthenticatedOrReadOnly`: General access.
-  - `IsOwnerOrReadOnly`: Users can only edit their own content (logic implemented in views).
+  - `IsAuthenticatedOrReadOnly`: Read for all, write for authenticated users.
 
 ## 📄 License
 
